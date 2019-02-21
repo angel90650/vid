@@ -1,0 +1,20 @@
+const videoTag = document.getElementById("video-player");
+const videoPath = "<%=video_path("s10.mp4")%>"
+const mediaSource = new MediaSource();
+const path = 'assets/sample.mp4'
+const stat = fs.statSync(path)
+const fileSize = stat.size
+const range = req.headers.range
+const url = URL.createObjectURL(mediaSource);
+
+videoTag.src = url
+console.log(url);
+console.log(videoTag.src);
+const videoSourceBuffer = mediaSource.addSourceBuffer('video/mp4; codecs="avc1.640013"');
+
+
+fetch( videoPath).then(function(response) {
+  return response.arrayBuffer();
+}).then(function(videoData) {
+  videoSourceBuffer.appendBuffer(videoData);
+});
