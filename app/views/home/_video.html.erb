@@ -1,8 +1,11 @@
 <div class="jumbotron">
   <div class="container">
     <h1 class="display-3">Hello, world!</h1>
-    <%= video_tag('s10.mp4', :size => "320x240", :controls => true) %>
+    <video src=<%= video_path("s10.mp4" )%> controls autoplay >
+
+    </video>
     <p>This is a template for a simple marketing or informational website. It includes a large callout called a jumbotron and three supporting pieces of content. Use it as a starting point to create something more unique.</p>
     <p><a class="btn btn-primary btn-lg"  role="button">Learn more »</a></p>
   </div>
+  <%= javascript_include_tag("partials/video.js")%>
 </div>
