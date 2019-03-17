@@ -3,6 +3,7 @@ const app = express();
 const path = require('path');
 const logger = require('./middleware/logger');
 const fs = require('fs');
+const videoName = 'output.webm';
 //const readStream = fs.createReadStream('/video/video.mp4');
 //init middleware
 app.use(logger);
@@ -21,7 +22,7 @@ app.get('/ui.js', (req, res) => {
   res.sendFile(path.join(__dirname,'ui.js'));
 });
 app.get('/manifest', (req, res) => {
-  const vidpath = path.join(__dirname, 'public', 'pixar.mp4');
+  const vidpath = path.join(__dirname, 'public', videoName);
   const stat = fs.statSync(vidpath);
   const fileSize = stat.size;
   const data = {size: fileSize, filename: 'pixar'}
@@ -29,7 +30,7 @@ app.get('/manifest', (req, res) => {
 });
 
 app.get('/video', (req, res) => {
-  const vidpath = path.join(__dirname, 'public', 'pixar.mp4');
+  const vidpath = path.join(__dirname, 'public', videoName);
   const stat = fs.statSync(vidpath);
   const fileSize = stat.size;
   const range = req.headers.range;
@@ -40,13 +41,22 @@ app.get('/video', (req, res) => {
     const chunksize = (end - start) + 1
     console.log('start:'+ start + 'end:' + end);
     const file = fs.createReadStream(vidpath, {start, end});
-    const head = {
-      'Content-Range': `bytes ${start}-${end}/${fileSize}`,
-      'Accept-Ranges':'bytes',
-      'Content-Length': chunksize,
-      'Content-Type': 'video/mp4',
-    };
-    res.writeHead(206, head);
+    if(start == 0 && end == fileSize){
+      const head = {
+        'Content-Length': fileSize,
+        'Content-Type': 'video/mp4',
+      };
+      res.writeHead(200, head);
+    }else {
+      const head = {
+        'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+        'Accept-Ranges':'bytes',
+        'Content-Length': chunksize,
+        'Content-Type': 'video/mp4',
+      };
+      res.writeHead(206, head);
+    }
+
     file.pipe(res);
   } else {
     const head = {
