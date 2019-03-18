@@ -1,4 +1,9 @@
 const videoTag = document.querySelector('video');
+const chunksizeDial = $("#chunksize");
+const delayDial = $('#networkdelay');
+const playButton = $("#playbutton");
+const list = $("#list");
+var listCount = 0;
 const videourl = 'http://localhost:5000/video'
 const manifesturl = 'http://localhost:5000/manifest'
 var mimeCodec = 'video/webm; codecs="vorbis,vp8"';
@@ -8,12 +13,19 @@ if(MediaSource.isTypeSupported(mimeCodec)) {
   console.error("unsupported media format");
 }
 
-videoTag.src = URL.createObjectURL(mediaSource);
+
 
 mediaSource.addEventListener('sourceopen', start.bind(mediaSource));
-
+playButton.click(() => {
+  console.log("clicked");
+  list.empty();
+  videoTag.src = URL.createObjectURL(mediaSource);
+});
 async function start() {
-  var chunksize = 10028;
+  var startTime =  new Date();
+  var delay = delayDial.val();
+  var chunksize = chunksizeDial.val() * 1000 || 10000;
+  console.log(chunksize);
   try{
     var manifest = await fetchManifest();
     var fileSize = manifest.size;
@@ -26,15 +38,22 @@ async function start() {
   var end = chunksize;
   var sourceBuffer = mediaSource.addSourceBuffer(mimeCodec);
   //sourceBuffer.addEventListener('updateend', onUpdateEnd);
-  while (end < fileSize){
+  while (end <= fileSize && start < fileSize){
     console.log(`start${start}, end${end}`);
     console.log(`fetch: ${count}`)
     count +=1
+    await new Promise(r => setTimeout(r, delay));
     var data = await fetchSegment(start, end);
     console.log(`data: ${data}`);
     await sourceBuffer.appendBuffer(data);
+    var current = new Date();
+    var elapsed = current - startTime;
+    updateList(`Streamed segment (startByte - endByte): ${start} - ${end} : time elapsed ${elapsed} ms`);
     start = end + 1;
     end = (chunksize < fileSize - end) ? (start + chunksize) : fileSize;
+    if (end/parseFloat(fileSize) > 0.10) {
+      await videoTag.play();
+      }
     }
 }
 
@@ -43,38 +62,6 @@ function repeat(sourceBuffer, start, end, fileSize, chunksize, buf){
   sourceBuffer.appendBuffer(buf);
 }
 
-function handleSourceOpen() {
-
-  fetchManifest((res) => {
-    var chunksize = 10028
-    var start = 0;
-    var fileSize;
-    var end = chunksize;
-    console.log(res);
-    fileSize = res.size;
-    console.log(res.size);
-    end = (chunksize < fileSize - end) ? (start + chunksize) : (fileSize - end);
-
-    var sourceBuffer = mediaSource.addSourceBuffer(mimeCodec);
-    sourceBuffer.addEventListener('updateend', () => {
-      const videoTag = document.querySelector('video');
-      console.log("here");
-      var myBufferedRange = sourceBuffer.buffered;
-      console.log(myBufferedRange);
-      console.log(`end: ${end}, fileSize:${fileSize}`);
-      if (end < fileSize) {
-        start = end + 1
-        end = (chunksize < fileSize - end) ? (start + chunksize) : fileSize
-        fetchSegment(sourceBuffer, start, end ,fileSize, chunksize, repeat.bind(sourceBuffer));
-      }
-
-    });
-    console.log(`start${start}, end${end}`);
-    console.log('source opened');
-    fetchSegment(sourceBuffer,  start, end, fileSize, chunksize, repeat.bind(sourceBuffer));
-    videoTag.play();
-  });
-}
 
 function fetchManifest(){
   return new Promise((resolve, reject) => {
@@ -105,4 +92,11 @@ async function fetchSegment(start, end){
    }
     xhr.send();
   });
+}
+
+function updateList(data) {
+
+  console.log(data);
+  $("#list").prepend(`<li class="list-group-item">${data}</li>`);
+  listCount += 1;
 }

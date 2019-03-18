@@ -41,9 +41,10 @@ app.get('/video', (req, res) => {
     const chunksize = (end - start) + 1
     console.log('start:'+ start + 'end:' + end);
     const file = fs.createReadStream(vidpath, {start, end});
-    if(start == 0 && end == fileSize){
+    if (end == fileSize){
+      console.log("here")
       const head = {
-        'Content-Length': fileSize,
+        'Content-Length': end - start,
         'Content-Type': 'video/mp4',
       };
       res.writeHead(200, head);
